@@ -77,12 +77,10 @@ class IoTSocketRouter :
 
     def AuthenticateSession(self, session, token128, hmac256) :
         if session.UID == IoTSocketStruct.CENTRAL_EMPTY_UID :
-            print(" - Connection of CENTRAL...")
             central = True
             authKey = self._centralAuthKey
         else :
             groupID, authKey = self.GetACLAccess(session.UID)
-            print(" - Connection of OBJECT...")
             central = False
         if authKey :
             hmac256srv = hmac.new(authKey, token128, hashlib.sha256).digest()
@@ -112,20 +110,16 @@ class IoTSocketRouter :
                 if session == self._centralSession :
                     self._centralSession = None
                     removed              = True
-                    print("Central Session Removed")
             elif session.UID in self._objectsSessions :
                 if session == self._objectsSessions[session.UID] :
                     del self._objectsSessions[session.UID]
                     removed = True
-                    print("Object Session Removed")
             if removed and keepSessionData :
                 exp = time() + self._keepSessionSec
                 self._keepSessionsData[session.UID] = ([ ], exp)
-                print("Keep Session Data Started")
             if session.TelemetryToken in self._telemetryTokens :
                 if session.UID == self._telemetryTokens[session.TelemetryToken] :
                     del self._telemetryTokens[session.TelemetryToken]
-                    print("Telemetry Token Removed")
 
     def CentralSessionExists(self) :
         return ( self._centralSession is not None or \
@@ -145,7 +139,6 @@ class IoTSocketRouter :
             if httpReq.TrackingNbr in self._centralHTTPRequests :
                 if httpReq == self._centralHTTPRequests[httpReq.TrackingNbr][0] :
                     del self._centralHTTPRequests[httpReq.TrackingNbr]
-                    print("HTTPRequest [%s] Removed" % httpReq.TrackingNbr)
 
     def GetNewTelemetryToken(self, uid) :
         with self._lock :
@@ -158,10 +151,11 @@ class IoTSocketRouter :
 
     def RouteRequest(self, fromUID, toUID, trackingNbr, dataFormat, formatOpt, data) :
         if toUID or self.CentralSessionExists() :
-            print("ROUTE REQUEST [%s] FROM [%s] TO SESSION [%s]" % (trackingNbr, fromUID, toUID))
             if toUID :
+                print("ROUTE : REQUEST #%s OF CENTRAL -> OBJECT[%s] (USING SESSION)" % (trackingNbr, toUID))
                 session = self._objectsSessions.get(toUID, None)
             else :
+                print("ROUTE : REQUEST #%s OF OBJECT[%s] -> CENTRAL (USING SESSION)" % (trackingNbr, fromUID))
                 session = self._centralSession
             data = IoTSocketStruct.MakeRequestTRHdr( fromUID,
                                                      trackingNbr,
@@ -178,7 +172,7 @@ class IoTSocketRouter :
                 sessionData.append(data)
                 return True
         else :
-            print("ROUTE REQUEST [%s] FROM [%s] TO WEBHOOK" % (trackingNbr, fromUID))
+            print("ROUTE : REQUEST #%s OF OBJECT[%s] -> CENTRAL (USING WEBHOOK)" % (trackingNbr, fromUID))
             if self._onGetWebHookRequest :
                 plFormat, plObject = IoTSocketStruct.DecodeJSONPayload(data, dataFormat)
                 if plFormat is not None and plObject is not None :
@@ -192,7 +186,6 @@ class IoTSocketRouter :
         return False
 
     def _onWebHookResponseOk(self, centralHTTPWebHook, o) :
-        print('WEBHOOK FINISHED')
         if o :
             uid, trackingNbr = centralHTTPWebHook.ObjRef
             try :
@@ -215,7 +208,6 @@ class IoTSocketRouter :
                 pass
 
     def _onWebHookClosed(self, centralHTTPWebHook) :
-        print('WEBHOOK CLOSED')
         uid, trackingNbr = centralHTTPWebHook.ObjRef
         if uid and trackingNbr :
             session = self._objectsSessions.get(uid, None)
@@ -228,10 +220,11 @@ class IoTSocketRouter :
 
     def RouteResponse(self, fromUID, toUID, trackingNbr, code, dataFormat, formatOpt, data) :
         if toUID or self.CentralSessionExists() :
-            print("ROUTE RESPONSE [%s] FROM [%s] TO SESSION [%s]" % (trackingNbr, fromUID, toUID))
             if toUID :
+                print("ROUTE : RESPONSE #%s OF CENTRAL -> OBJECT[%s] (USING SESSION)" % (trackingNbr, toUID))
                 session = self._objectsSessions.get(toUID, None)
             else :
+                print("ROUTE : RESPONSE #%s OF OBJECT[%s] -> CENTRAL (USING SESSION)" % (trackingNbr, fromUID))
                 session = self._centralSession
             if session :
                 session.EndTrackingRequest(trackingNbr)
@@ -244,7 +237,7 @@ class IoTSocketRouter :
                      + data
                 return session.Send(data)
         else :
-            print("ROUTE RESPONSE [%s] FROM [%s] TO HTTP REQUEST" % (trackingNbr, fromUID))
+            print("ROUTE : RESPONSE #%s OF OBJECT[%s] -> CENTRAL (USING HTTP RESPONSE)" % (trackingNbr, fromUID))
             httpReq, exp = self._centralHTTPRequests.get(trackingNbr, (None, None))
             if httpReq :
                 plFormat, plObject = IoTSocketStruct.DecodeJSONPayload(data, dataFormat)
@@ -258,7 +251,7 @@ class IoTSocketRouter :
             uid = self._telemetryTokens.get(token, None)
             if uid :
                 if self.CentralSessionExists() :
-                    print('ROUTE TELEMETRY TO SESSION')
+                    print('ROUTE : TELEMETRY OF OBJECT[%s] -> CENTRAL (USING SESSION)' % uid)
                     session = self._centralSession
                     if session :
                         data = IoTSocketStruct.MakeIdentTelemetryTRHdr( uid,
@@ -268,7 +261,7 @@ class IoTSocketRouter :
                              + data
                         return session.Send(data)
                 elif self._onGetWebHookTelemetry :
-                    print('ROUTE TELEMETRY TO WEBHOOK')
+                    print('ROUTE : TELEMETRY OF OBJECT[%s] -> CENTRAL (USING WEBHOOK)' % uid)
                     plFormat, plObject = IoTSocketStruct.DecodeJSONPayload(data, dataFormat)
                     if plFormat is not None and plObject is not None :
                         webHook = self._onGetWebHookTelemetry(self)

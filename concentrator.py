@@ -16,7 +16,6 @@ from   binascii           import unhexlify
 from   time               import sleep
 
 def OnTCPSrvClientAccepted(xAsyncTCPServer, xAsyncTCPClient) :
-    print('On TCP Server Client Accepted')
     IoTSocketSession( xAsyncTCPClient = xAsyncTCPClient,
                       router          = router,
                       sslKeyFilename  = tcpSSLKeyFilename,
@@ -24,10 +23,9 @@ def OnTCPSrvClientAccepted(xAsyncTCPServer, xAsyncTCPClient) :
                       reqTimeout      = tcpReqTimeoutSec )
 
 def OnTCPSrvClosed(xAsyncTCPServer, closedReason) :
-    print('On TCP Server Closed')
+    pass
  
 def OnHTTPSrvClientAccepted(xAsyncTCPServer, xAsyncTCPClient) :
-    print('On HTTP Server Client Accepted')
     CentralHTTPRequest( xAsyncTCPClient  = xAsyncTCPClient,
                         router           = router,
                         sslKeyFilename   = httpSSLKeyFilename,
@@ -35,18 +33,13 @@ def OnHTTPSrvClientAccepted(xAsyncTCPServer, xAsyncTCPClient) :
                         maxContentLength = httpMaxContentLength )
 
 def OnHTTPSrvClosed(xAsyncTCPServer, closedReason) :
-    print('On HTTP Server Closed')
+    pass
 
 def OnUDPSrvDataRecv(xAsyncUDPDatagram, remoteAddr, datagram) :
-    print('On UDP Server Data Received (%s:%s)' % remoteAddr)
     token, dataFormat, formatOpt, data = IoTSocketStruct.DecodeTelemetryPacket(datagram.tobytes())
-    if router.RouteTelemetry(token, dataFormat, formatOpt, data) :
-        print("Telemetry Routed")
-    else :
-        print("Telemetry Not Routed")
+    router.RouteTelemetry(token, dataFormat, formatOpt, data)
 
 def OnRouterGetWebHookRequest(iotSocketRouter) :
-    print("Get WebHook Request (%s)" % webHookRequestUrl)
     try :
         return CentralHTTPWebHook( url              = webHookRequestUrl,
                                    pool             = xasPool,
@@ -56,7 +49,6 @@ def OnRouterGetWebHookRequest(iotSocketRouter) :
         return None
 
 def OnRouterGetWebHookTelemetry(iotSocketRouter) :
-    print("Get WebHook Telemetry (%s)" % webHookTelemetryUrl)
     try :
         return CentralHTTPWebHook( url              = webHookTelemetryUrl,
                                    pool             = xasPool,
@@ -272,5 +264,7 @@ def Start() :
     return True
 
 if Start() :
+    print()
+    print("IOTSOCKET CONCENTRATOR STARTED!")
     while True :
         sleep(1)
