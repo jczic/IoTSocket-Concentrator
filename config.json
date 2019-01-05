@@ -1,6 +1,6 @@
 {
 
-    "PoolThreadsCount"          : 100,
+    "PoolThreadsCount"          : 25,
     "KeepSessionSec"            : 60,
 
     "TCPServer" :
