@@ -163,17 +163,19 @@ class IoTSocketRouter :
                 session = self._objectsSessions.get(toUID, None)
             else :
                 session = self._centralSession
-            tr = IoTSocketStruct.MakeRequestTRHdr( fromUID,
-                                                   trackingNbr,
-                                                   dataFormat,
-                                                   formatOpt,
-                                                   len(data) ) \
-               + data
-            if session and session.Send(tr) :
+            data = IoTSocketStruct.MakeRequestTRHdr( fromUID,
+                                                     trackingNbr,
+                                                     dataFormat,
+                                                     formatOpt,
+                                                     len(data) ) \
+                 + data
+            if session and session.Send(data) :
                 return True
+            if not toUID :
+                toUID = IoTSocketStruct.CENTRAL_EMPTY_UID
             sessionData, exp = self._keepSessionsData.get(toUID, (None, None))
             if sessionData is not None :
-                sessionData.append(tr)
+                sessionData.append(data)
                 return True
         else :
             print("ROUTE REQUEST [%s] FROM [%s] TO WEBHOOK" % (trackingNbr, fromUID))
@@ -201,14 +203,14 @@ class IoTSocketRouter :
                     session = self._objectsSessions.get(uid, None)
                     if session :
                         session.EndTrackingRequest(trackingNbr)
-                        tr = IoTSocketStruct.MakeResponseTRHdr( None,
-                                                                trackingNbr,
-                                                                code,
-                                                                fmt,
-                                                                IoTSocketStruct.PLDATA_FMT_OPT_NONE,
-                                                                len(data) ) \
-                           + data
-                        session.Send(tr)
+                        data = IoTSocketStruct.MakeResponseTRHdr( None,
+                                                                  trackingNbr,
+                                                                  code,
+                                                                  fmt,
+                                                                  IoTSocketStruct.PLDATA_FMT_OPT_NONE,
+                                                                  len(data) ) \
+                             + data
+                        session.Send(data)
             except :
                 pass
 
@@ -219,10 +221,10 @@ class IoTSocketRouter :
             session = self._objectsSessions.get(uid, None)
             if session :
                 session.EndTrackingRequest(trackingNbr)
-                tr = IoTSocketStruct.MakeResponseErrTR( None,
-                                                        trackingNbr,
-                                                        IoTSocketStruct.RESP_CODE_REQ_NOK )
-                session.Send(tr)
+                data = IoTSocketStruct.MakeResponseErrTR( None,
+                                                          trackingNbr,
+                                                          IoTSocketStruct.RESP_CODE_REQ_NOK )
+                session.Send(data)
 
     def RouteResponse(self, fromUID, toUID, trackingNbr, code, dataFormat, formatOpt, data) :
         if toUID or self.CentralSessionExists() :
@@ -233,14 +235,14 @@ class IoTSocketRouter :
                 session = self._centralSession
             if session :
                 session.EndTrackingRequest(trackingNbr)
-                tr = IoTSocketStruct.MakeResponseTRHdr( fromUID,
-                                                        trackingNbr,
-                                                        code,
-                                                        dataFormat,
-                                                        formatOpt,
-                                                        len(data) ) \
-                   + data
-                return session.Send(tr)
+                data = IoTSocketStruct.MakeResponseTRHdr( fromUID,
+                                                          trackingNbr,
+                                                          code,
+                                                          dataFormat,
+                                                          formatOpt,
+                                                          len(data) ) \
+                     + data
+                return session.Send(data)
         else :
             print("ROUTE RESPONSE [%s] FROM [%s] TO HTTP REQUEST" % (trackingNbr, fromUID))
             httpReq, exp = self._centralHTTPRequests.get(trackingNbr, (None, None))
@@ -259,9 +261,12 @@ class IoTSocketRouter :
                     print('ROUTE TELEMETRY TO SESSION')
                     session = self._centralSession
                     if session :
-                        tr = IoTSocketStruct.MakeIdentTelemetryTRHdr(uid, dataFormat, formatOpt, len(data)) \
-                           + data
-                        return session.Send(tr)
+                        data = IoTSocketStruct.MakeIdentTelemetryTRHdr( uid,
+                                                                        dataFormat,
+                                                                        formatOpt,
+                                                                        len(data) ) \
+                             + data
+                        return session.Send(data)
                 elif self._onGetWebHookTelemetry :
                     print('ROUTE TELEMETRY TO WEBHOOK')
                     plFormat, plObject = IoTSocketStruct.DecodeJSONPayload(data, dataFormat)

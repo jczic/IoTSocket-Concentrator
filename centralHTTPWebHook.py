@@ -8,12 +8,10 @@ class CentralHTTPWebHook :
     CONN_TIMEOUT = 3
     RECV_TIMEOUT = 2
 
-    def __init__(self, url, router, pool, httpBufferSize, maxContentLength) :
+    def __init__(self, url, pool, httpBufferSize, maxContentLength) :
         self._url              = url
-        self._router           = router
         self._maxContentLength = maxContentLength
         self._headers          = { }
-        self._contentType      = None
         self._contentLength    = 0
         self._objRef           = None
         self._onResponseOk     = None
@@ -85,7 +83,6 @@ class CentralHTTPWebHook :
                 self._headers[elements[0].strip().lower()] = elements[1].strip()
                 self._recvLine(self._onHeaderLineRecv)
             elif len(elements) == 1 and len(elements[0]) == 0 :
-                self._contentType   = self._headers.get("content-type", None)
                 self._contentLength = int(self._headers.get("content-length", 0))
                 self._onAllHeadersReaded()
             else :

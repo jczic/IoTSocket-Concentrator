@@ -41,15 +41,14 @@ def OnUDPSrvDataRecv(xAsyncUDPDatagram, remoteAddr, datagram) :
     print('On UDP Server Data Received (%s:%s)' % remoteAddr)
     token, dataFormat, formatOpt, data = IoTSocketStruct.DecodeTelemetryPacket(datagram.tobytes())
     if router.RouteTelemetry(token, dataFormat, formatOpt, data) :
-        print("TELEMETRY ROUTED!")
+        print("Telemetry Routed")
     else :
-        print("TELEMETRY NOT ROUTED...")
+        print("Telemetry Not Routed")
 
 def OnRouterGetWebHookRequest(iotSocketRouter) :
-    print("WebHook Request (%s)" % webHookRequestUrl)
+    print("Get WebHook Request (%s)" % webHookRequestUrl)
     try :
         return CentralHTTPWebHook( url              = webHookRequestUrl,
-                                   router           = iotSocketRouter,
                                    pool             = xasPool,
                                    httpBufferSize   = webHookHTTPBufferSize,
                                    maxContentLength = webHookMaxContentLength )
@@ -57,10 +56,9 @@ def OnRouterGetWebHookRequest(iotSocketRouter) :
         return None
 
 def OnRouterGetWebHookTelemetry(iotSocketRouter) :
-    print("WebHook Telemetry (%s)" % webHookTelemetryUrl)
+    print("Get WebHook Telemetry (%s)" % webHookTelemetryUrl)
     try :
         return CentralHTTPWebHook( url              = webHookTelemetryUrl,
-                                   router           = iotSocketRouter,
                                    pool             = xasPool,
                                    httpBufferSize   = webHookHTTPBufferSize,
                                    maxContentLength = webHookMaxContentLength )
