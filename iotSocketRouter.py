@@ -2,17 +2,19 @@
 from   iotSocketStruct import IoTSocketStruct
 from   secrets         import randbelow, token_bytes
 from   _thread         import allocate_lock
-from   binascii        import hexlify
+from   binascii        import hexlify, unhexlify
 from   threading       import Timer
 from   time            import time
 import hmac
 import hashlib
+import json
 
 class IoTSocketRouter :
 
-    def __init__(self, centralAuthKey, keepSessionSec) :
+    def __init__(self, aclFilename, centralAuthKey, keepSessionSec) :
+        self._aclFilename           = aclFilename
         self._centralAuthKey        = centralAuthKey
-        self._centralAuthKeyHex     = hexlify(centralAuthKey)
+        self._centralAuthKeyHex     = hexlify(centralAuthKey).decode()
         self._keepSessionSec        = keepSessionSec
         self._centralSession        = None
         self._groups                = { }
@@ -61,13 +63,49 @@ class IoTSocketRouter :
         return None
 
     def ClearACL(self) :
-        self._acl.clear()
+        with self._lock :
+            self._acl.clear()
 
     def AddACLAccess(self, groupID, uid, authKey) :
-        if groupID in self._groups :
-            self._acl[uid] = (groupID, authKey)
-            return True
+        with self._lock :
+            if groupID in self._groups :
+                self._acl[uid] = (groupID, authKey)
+                return True
         return False
+
+    def SaveACL(self) :
+        try :
+            o = { }
+            with self._lock :
+                for uid in self._acl :
+                    o[IoTSocketStruct.UIDFromBin128(uid)] = {
+                        "GroupName" : IoTSocketStruct.GroupNameFromBin128(self._acl[uid][0]),
+                        "AuthKey"   : hexlify(self._acl[uid][1]).decode()
+                    }
+            with open(self._aclFilename, 'wb') as file :
+                file.write(json.dumps(o).encode('UTF-8'))
+            return True
+        except :
+            return False
+
+    def LoadACL(self) :
+        try :
+            with open(self._aclFilename, 'r') as file :
+                o = json.load(file)
+            acl = { }
+            for strUID in o :
+                uid     = IoTSocketStruct.UIDToBin128(strUID)
+                groupID = IoTSocketStruct.GroupNameToBin128(o[strUID]["GroupName"])
+                authKey = unhexlify(o[strUID]["AuthKey"])
+                if not uid or not groupID or len(authKey) != 16 or \
+                   not groupID in self._groups :
+                    return False
+                acl[uid] = (groupID, authKey)
+            with self._lock :
+                self._acl = acl
+            return True
+        except :
+            return False
 
     def GetACLAccess(self, uid) :
         return self._acl.get(uid, (None, None))

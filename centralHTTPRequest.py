@@ -180,6 +180,7 @@ class CentralHTTPRequest :
                 self._router.ClearACL()
                 for ac in acl :
                     self._router.AddACLAccess(*ac)
+                self._router.SaveACL()
                 self._sendHTTPResponse(200)
                 return
         except :

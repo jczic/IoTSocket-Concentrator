@@ -134,6 +134,7 @@ class IoTSocketSession :
         if arg > 1 :
             self._recv(48, self._onACLItemRecv, arg-1)
         else :
+            self._router.SaveACL()
             self._waitDataTransmission()
 
     def _onRequestRecv(self, xAsyncTCPClient, data, arg) :

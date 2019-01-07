@@ -199,7 +199,8 @@ def Start() :
 
     xasPool = XAsyncSocketsPool()
 
-    router  = IoTSocketRouter( centralAuthKey = centralAuthKey,
+    router  = IoTSocketRouter( aclFilename    = 'acl.json',
+                               centralAuthKey = centralAuthKey,
                                keepSessionSec = keepSessionSec )
 
     if webHookRequestUrl :
@@ -216,6 +217,9 @@ def Start() :
         if not router.AddGroup(groupName, groups[groupName]) :
             print("Error when reading group '%s' in configuration." % groupName)
             return False
+
+    if not router.LoadACL() :
+        print("Cannot read ACL file -> No ACL setted in concentrator.")
 
     tcpSrvBufSlots = XBufferSlots( slotsCount = tcpSlotsCount,
                                    slotsSize  = tcpSlotsSize,
