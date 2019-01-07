@@ -8,14 +8,15 @@ class CentralHTTPWebHook :
     CONN_TIMEOUT = 3
     RECV_TIMEOUT = 2
 
-    def __init__(self, url, pool, httpBufferSize, maxContentLength) :
-        self._url              = url
-        self._maxContentLength = maxContentLength
-        self._headers          = { }
-        self._contentLength    = 0
-        self._objRef           = None
-        self._onResponseOk     = None
-        self._onClosed         = None
+    def __init__(self, url, pool, httpBufferSize, maxContentLength, maxSecWaitResponse) :
+        self._url                = url
+        self._maxContentLength   = maxContentLength
+        self._maxSecWaitResponse = maxSecWaitResponse
+        self._headers            = { }
+        self._contentLength      = 0
+        self._objRef             = None
+        self._onResponseOk       = None
+        self._onClosed           = None
         try :
             self._xasTCPCli = XAsyncTCPClient.Create( asyncSocketsPool = pool,
                                                       srvAddr          = (url.Host, url.Port),
@@ -45,6 +46,9 @@ class CentralHTTPWebHook :
     def _recvLine(self, onDataRecv, onDataRecvArg=None) :
         self._xasTCPCli.AsyncRecvLine(onDataRecv, onDataRecvArg, self.RECV_TIMEOUT)
 
+    def _recvResponseFirstLine(self, onDataRecv, onDataRecvArg=None) :
+        self._xasTCPCli.AsyncRecvLine(onDataRecv, onDataRecvArg, self._maxSecWaitResponse)
+
     def _onTCPConnClosed(self, xAsyncTCPClient, closedReason) :
         if self._onClosed :
             self._onClosed(self)
@@ -63,7 +67,7 @@ class CentralHTTPWebHook :
         self._sendLine('Content-Length: %s' % len(data))
         self._sendLine()
         self._send(data)
-        self._recvLine(self._onFirstLineRecv)
+        self._recvResponseFirstLine(self._onFirstLineRecv)
 
     def _onFirstLineRecv(self, xAsyncTCPClient, line, arg) :
         try :

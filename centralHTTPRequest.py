@@ -9,10 +9,11 @@ class CentralHTTPRequest :
 
     RECV_TIMEOUT = 2
 
-    def __init__(self, xAsyncTCPClient, router, sslKeyFilename, sslCrtFilename, maxContentLength) :
+    def __init__(self, xAsyncTCPClient, router, sslKeyFilename, sslCrtFilename, maxContentLength, maxSecWaitResponse) :
         self._xasTCPCli          = xAsyncTCPClient
         self._router             = router
         self._maxContentLength   = maxContentLength
+        self._maxSecWaitResponse = maxSecWaitResponse
         self._method             = None
         self._resPath            = None
         self._httpVer            = None
@@ -195,10 +196,12 @@ class CentralHTTPRequest :
             return
         try :
             uid       = IoTSocketStruct.UIDToBin128(o['UID'])
-            timeout   = int(o.get('Timeout', 0))
+            timeout   = int(o.get('Timeout', self._maxSecWaitResponse))
             fmt, data = IoTSocketStruct.EncodeJSONPayload(o['Payload'], o['Format'])
-            if uid and timeout >= 0 and fmt is not None and data is not None :
-                exp               = (time() + timeout) if timeout else None
+            if uid and timeout > 0 and fmt is not None and data is not None :
+                if timeout > self._maxSecWaitResponse :
+                    timeout = self._maxSecWaitResponse
+                exp               = time() + timeout
                 self._trackingNbr = self._router.AddCentralHTTPRequest(self, exp)
                 if not self._router.RouteRequest( fromUID     = None,
                                                   toUID       = uid,

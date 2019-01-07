@@ -26,11 +26,12 @@ def OnTCPSrvClosed(xAsyncTCPServer, closedReason) :
     pass
  
 def OnHTTPSrvClientAccepted(xAsyncTCPServer, xAsyncTCPClient) :
-    CentralHTTPRequest( xAsyncTCPClient  = xAsyncTCPClient,
-                        router           = router,
-                        sslKeyFilename   = httpSSLKeyFilename,
-                        sslCrtFilename   = httpSSLCrtFilename,
-                        maxContentLength = httpMaxContentLength )
+    CentralHTTPRequest( xAsyncTCPClient    = xAsyncTCPClient,
+                        router             = router,
+                        sslKeyFilename     = httpSSLKeyFilename,
+                        sslCrtFilename     = httpSSLCrtFilename,
+                        maxContentLength   = httpMaxContentLength,
+                        maxSecWaitResponse = httpMaxSecWaitResponse )
 
 def OnHTTPSrvClosed(xAsyncTCPServer, closedReason) :
     pass
@@ -41,19 +42,21 @@ def OnUDPSrvDataRecv(xAsyncUDPDatagram, remoteAddr, datagram) :
 
 def OnRouterGetWebHookRequest(iotSocketRouter) :
     try :
-        return CentralHTTPWebHook( url              = webHookRequestUrl,
-                                   pool             = xasPool,
-                                   httpBufferSize   = webHookHTTPBufferSize,
-                                   maxContentLength = webHookMaxContentLength )
+        return CentralHTTPWebHook( url                = webHookRequestUrl,
+                                   pool               = xasPool,
+                                   httpBufferSize     = webHookHTTPBufferSize,
+                                   maxContentLength   = webHookMaxContentLength,
+                                   maxSecWaitResponse = webHookMaxSecWaitResponse )
     except :
         return None
 
 def OnRouterGetWebHookTelemetry(iotSocketRouter) :
     try :
-        return CentralHTTPWebHook( url              = webHookTelemetryUrl,
-                                   pool             = xasPool,
-                                   httpBufferSize   = webHookHTTPBufferSize,
-                                   maxContentLength = webHookMaxContentLength )
+        return CentralHTTPWebHook( url                = webHookTelemetryUrl,
+                                   pool               = xasPool,
+                                   httpBufferSize     = webHookHTTPBufferSize,
+                                   maxContentLength   = webHookMaxContentLength,
+                                   maxSecWaitResponse = webHookMaxSecWaitResponse )
     except :
         return None
 
@@ -66,6 +69,7 @@ def Start() :
     global httpSSLKeyFilename
     global httpSSLCrtFilename
     global httpMaxContentLength
+    global httpMaxSecWaitResponse
     global tcpBindAddr
     global xasTCPSrv
     global httpBindAddr
@@ -76,6 +80,7 @@ def Start() :
     global webHookTelemetryUrl
     global webHookHTTPBufferSize
     global webHookMaxContentLength
+    global webHookMaxSecWaitResponse
     global router
     global xasPool
 
@@ -143,6 +148,10 @@ def Start() :
     if type(httpMaxContentLength) is not int or httpMaxContentLength <= 0 :
         print("Error when reading 'HTTPServer.MaxContentLength' in configuration.")
         return False
+    httpMaxSecWaitResponse = cfg.get('HTTPServer.MaxSecWaitResponse')
+    if type(httpMaxSecWaitResponse) is not int or httpMaxSecWaitResponse <= 0 :
+        print("Error when reading 'HTTPServer.MaxSecWaitResponse' in configuration.")
+        return False
 
     udpSrvAddr = cfg.get('UDPServer.Addr')
     udpSrvPort = cfg.get('UDPServer.Port')
@@ -195,6 +204,10 @@ def Start() :
     webHookMaxContentLength = cfg.get('Central.WebHooks.MaxContentLength')
     if type(webHookMaxContentLength) is not int or webHookMaxContentLength <= 0 :
         print("Error when reading 'Central.WebHooks.MaxContentLength' in configuration.")
+        return False
+    webHookMaxSecWaitResponse = cfg.get('Central.WebHooks.MaxSecWaitResponse')
+    if type(webHookMaxSecWaitResponse) is not int or webHookMaxSecWaitResponse <= 0 :
+        print("Error when reading 'Central.WebHooks.MaxSecWaitResponse' in configuration.")
         return False
 
     xasPool = XAsyncSocketsPool()

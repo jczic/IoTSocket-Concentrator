@@ -1,48 +1,50 @@
 {
 
-    "PoolThreadsCount"          : 25,
-    "KeepSessionSec"            : 60,
+    "PoolThreadsCount"           : 25,
+    "KeepSessionSec"             : 60,
 
     "TCPServer" :
     {
-        "Addr"                  : "0.0.0.0",
-        "Port"                  : 50505,
-        "SlotsCount"            : 5000,
-        "SlotsSize"             : 4096,
-        "Backlog"               : 256,
-        "SSLKeyFilename"        : "openhc2.key",
-        "SSLCrtFilename"        : "openhc2.crt",
-        "ReqTimeoutSec"         : 10
+        "Addr"                   : "0.0.0.0",
+        "Port"                   : 50505,
+        "SlotsCount"             : 5000,
+        "SlotsSize"              : 4096,
+        "Backlog"                : 256,
+        "SSLKeyFilename"         : "openhc2.key",
+        "SSLCrtFilename"         : "openhc2.crt",
+        "ReqTimeoutSec"          : 10
     },
 
     "HTTPServer" :
     {
-        "Addr"                  : "0.0.0.0",
-        "Port"                  : 443,
-        "SlotsCount"            : 200,
-        "SlotsSize"             : 4096,
-        "Backlog"               : 64,
-        "SSLKeyFilename"        : "openhc2.key",
-        "SSLCrtFilename"        : "openhc2.crt",
-        "MaxContentLength"      : 524288
+        "Addr"                   : "0.0.0.0",
+        "Port"                   : 443,
+        "SlotsCount"             : 200,
+        "SlotsSize"              : 4096,
+        "Backlog"                : 64,
+        "SSLKeyFilename"         : "openhc2.key",
+        "SSLCrtFilename"         : "openhc2.crt",
+        "MaxContentLength"       : 524288,
+        "MaxSecWaitResponse"     : 30
     },
 
     "UDPServer" :
     {
-        "Addr"                  : "0.0.0.0",
-        "Port"                  : 50505,
-        "DatagramMaxSize"       : 4096
+        "Addr"                   : "0.0.0.0",
+        "Port"                   : 50505,
+        "DatagramMaxSize"        : 4096
     },
 
     "Central" :
     {
-        "AuthKey"               : "00112233445566778899AABBCCDDEEFF",
+        "AuthKey"                : "00112233445566778899AABBCCDDEEFF",
         "WebHooks" :
         {
-            "Request"           : "http://localhost/request",
-            "Telemetry"         : "https://localhost/telemetry",
-            "HTTPBufferSize"    : 4096,
-            "MaxContentLength"  : 524288
+            "Request"            : "http://localhost/request",
+            "Telemetry"          : "https://localhost/telemetry",
+            "HTTPBufferSize"     : 4096,
+            "MaxContentLength"   : 524288,
+            "MaxSecWaitResponse" : 5
         }
     },
 
@@ -50,7 +52,7 @@
     {
         "Devices" :
         {
-            "Telemetry"         : true
+            "Telemetry"          : true
         }
     }
 
