@@ -1,5 +1,13 @@
 ![IoTSocket Concentrator](img/iotsocket_concentrator.png "IoTSocket Concentrator")
-## Informations à propos du concentrateur implémentant le protocole IoTSocket.
+## Concentrateur/Routeur/API pour les plateformes d'objets connectés.
+
+- Implémente le protocole [IoTSocket Protocol (draft v0.07)](https://github.com/jczic/IoTSocket-Concentrator/blob/master/Protocole%20IoTSocket%20(draft-v0.07).pdf).
+- Utilise la couche sockets asynchrone I/O [XAsyncSockets](https://github.com/jczic/XAsyncSockets).
+- Permet des échanges en TCP, UDP et HTTP(S).
+- Supporte le dialogue avec des APIs Web de type REST.
+- Assure le maintient de milliers de connexions persistantes.
+- Sécurise les communications par chiffrement TLS et clés/jetons.
+- Finement paramétrable via fichier de configuration JSON.
 
 <p align="center">
     <img src="img/concentrator.png">
