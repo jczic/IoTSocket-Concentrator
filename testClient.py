@@ -13,7 +13,7 @@ import time
 
 class IoTSocketSession :
 
-    IOTSOCKET_VER   = 0x00
+    IOTSOCKET_VER   = 0x01
     MAX_TR_LEN      = 2*1024
     RECV_TIMEOUT    = 7
 
@@ -53,7 +53,15 @@ class IoTSocketSession :
         authKey = b'CCCCCCCCDDDDDDDD'
         hmac256 = hmac.new(authKey, data, hashlib.sha256).digest()
         self._send(uid + hmac256)
-        self._startSession()
+        self._recv(1, self._onAuthValidationRecv)
+
+    def _onAuthValidationRecv(self, xAsyncTCPClient, data, arg) :
+        if data and bool(ord(bytes(data))) :
+            print('Authentication ok')
+            self._startSession()
+        else :
+            print('Authentication error')
+            self.Close()
 
     def _startSession(self) :
         self._waitDataTransmission()

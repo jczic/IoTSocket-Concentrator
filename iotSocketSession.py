@@ -12,7 +12,7 @@ from   time            import time
 
 class IoTSocketSession :
 
-    IOTSOCKET_VER   = 0x00
+    IOTSOCKET_VER   = 0x01
     RECV_TIMEOUT    = 2
 
     def __init__(self, xAsyncTCPClient, router, sslKeyFilename, sslCrtFilename, reqTimeout) :
@@ -80,8 +80,10 @@ class IoTSocketSession :
         self._uid  = data[:16].tobytes()
         hmac256    = data[16:].tobytes()
         if self._router.AuthenticateSession(self, self._token128, hmac256) :
+            self.Send(bytes([True]))
             self._startSession()
         else :
+            self.Send(bytes([False]))
             self.Close()
 
     def _startSession(self) :
