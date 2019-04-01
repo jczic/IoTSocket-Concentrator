@@ -77,13 +77,13 @@ class IoTSocketSession :
         self._recv(48, self._onChallengeRecv)
 
     def _onChallengeRecv(self, xAsyncTCPClient, data, arg) :
-        self._uid  = data[:16].tobytes()
-        hmac256    = data[16:].tobytes()
-        if self._router.AuthenticateSession(self, self._token128, hmac256) :
-            self.Send(bytes([True]))
+        self._uid = data[:16].tobytes()
+        hmac256   = data[16:].tobytes()
+        validated = self._router.AuthenticateSession(self, self._token128, hmac256)
+        self.Send(IoTSocketStruct.MakeAuthValidation(validated))
+        if validated :
             self._startSession()
         else :
-            self.Send(bytes([False]))
             self.Close()
 
     def _startSession(self) :

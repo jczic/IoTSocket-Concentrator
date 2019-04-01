@@ -56,7 +56,7 @@ class IoTSocketSession :
         self._recv(1, self._onAuthValidationRecv)
 
     def _onAuthValidationRecv(self, xAsyncTCPClient, data, arg) :
-        if data and bool(ord(bytes(data))) :
+        if IoTSocketStruct.DecodeAuthValidation(data) :
             print('Authentication ok')
             self._startSession()
         else :

@@ -130,6 +130,16 @@ class IoTSocketStruct :
         return (ok, ruleType, ruleFlags)
 
     @staticmethod
+    def MakeAuthValidation(validated) :
+        return bytes([validated])
+
+    @staticmethod
+    def DecodeAuthValidation(data) :
+        return data is not None and \
+               len(data) == 1   and \
+               bool(ord(bytes(data)))
+
+    @staticmethod
     def _makeDataTRHdr(tot, uid=None) :
         if uid :
             if len(uid) != 16 :
