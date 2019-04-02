@@ -138,12 +138,15 @@ class IoTSocketRouter :
                         if existingSession :
                             existingSession.Close()
                         self._objectsSessions[session.UID] = session
+                    session.Send(IoTSocketStruct.MakeAuthValidation(True))
                     sessionData, exp = self._keepSessionsData.get(session.UID, (None, None))
                     if sessionData is not None :
                         for data in sessionData :
                             session.Send(data)
                         del self._keepSessionsData[session.UID]
                 return True
+        session.Send(IoTSocketStruct.MakeAuthValidation(False))
+        session.Close()
         return False
 
     def RemoveSession(self, session, keepSessionData) :
