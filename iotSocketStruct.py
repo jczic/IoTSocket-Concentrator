@@ -59,9 +59,11 @@ class IoTSocketStruct :
     def _strIdentTobin128(strIdent) :
         if strIdent is not None :
             try :
-                bin128 = strIdent.encode("UTF-8").rjust(16, b'\x00')
-                if len(bin128) == 16 :
-                    return bin128
+                bin128 = strIdent.encode("UTF-8")
+                if len(bin128) <= 16 :
+                    bin128 = ( b'\x00' * (16-len(bin128)) ) \
+                           + bin128
+                return bin128
             except :
                 pass
         return None
