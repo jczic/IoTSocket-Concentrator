@@ -128,17 +128,17 @@ class IoTSocketRouter :
         if authKey :
             hmac256srv = hmac.new(authKey, token128, hashlib.sha256).digest()
             if hmac.compare_digest(hmac256, hmac256srv) :
+                if central :
+                    if self._centralSession :
+                        self._centralSession.Close()
+                    self._centralSession = session
+                else :
+                    existingSession = self._objectsSessions.get(session.UID, None)
+                    if existingSession :
+                        existingSession.Close()
+                    self._objectsSessions[session.UID] = session
+                session.Send(IoTSocketStruct.MakeAuthValidation(True))
                 with self._lock :
-                    if central :
-                        if self._centralSession :
-                            self._centralSession.Close()
-                        self._centralSession = session
-                    else :
-                        existingSession = self._objectsSessions.get(session.UID, None)
-                        if existingSession :
-                            existingSession.Close()
-                        self._objectsSessions[session.UID] = session
-                    session.Send(IoTSocketStruct.MakeAuthValidation(True))
                     sessionData, exp = self._keepSessionsData.get(session.UID, (None, None))
                     if sessionData is not None :
                         for data in sessionData :
