@@ -707,16 +707,16 @@ class XAsyncTCPClient(XAsyncSocket) :
             except Exception as ex :
                 raise XAsyncTCPClientException('StartSSL : %s' % ex)
             count = 0
-            while count < 5 :
+            while count < 10 :
                 try :
                     self._socket.do_handshake()
                     return True
                 except ssl.SSLError as sslErr :
                     count += 1
                     if sslErr.args[0] == ssl.SSL_ERROR_WANT_READ :
-                        select([self._socket], [], [], 0.500)
+                        select([self._socket], [], [], 1)
                     elif sslErr.args[0] == ssl.SSL_ERROR_WANT_WRITE :
-                        select([], [self._socket], [], 0.500)
+                        select([], [self._socket], [], 1)
                     else :
                         break
                 except :
