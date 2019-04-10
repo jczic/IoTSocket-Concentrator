@@ -6,7 +6,9 @@
 - Permet des échanges en TCP, UDP et HTTP(S).
 - Supporte le dialogue avec des APIs Web de type REST.
 - Assure le maintient de milliers de connexions persistantes.
+- Offre une télémétrie "hors session" par obtention de jetons temporaires.
 - Sécurise les communications par chiffrement TLS et clés/jetons.
+- Permet de traiter les sessions d'objets au sein de groupes dédiés.
 - Finement paramétrable via fichier de configuration JSON.
 
 <p align="center">
