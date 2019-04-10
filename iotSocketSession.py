@@ -16,20 +16,20 @@ class IoTSocketSession :
     RECV_TIMEOUT    = 5
 
     def __init__(self, xAsyncTCPClient, router, sslKeyFilename, sslCrtFilename, reqTimeout) :
-        self._xasTCPCli      = xAsyncTCPClient
-        self._router         = router
-        self._sslKeyFilename = sslKeyFilename
-        self._sslCrtFilename = sslCrtFilename
-        self._reqTimeout     = reqTimeout
-        self._uid            = None
-        self._telemetryToken = None
-        self._authenticated  = False
-        self._isCentral      = False
-        self._groupID        = None
-        self._closedCode     = None
-        self._requests       = { }
-        self._requestsLock   = allocate_lock()
-        self._xasTCPCli.OnClosed = self._onTCPConnClosed
+        self._xasTCPCli            = xAsyncTCPClient
+        self._router               = router
+        self._sslKeyFilename       = sslKeyFilename
+        self._sslCrtFilename       = sslCrtFilename
+        self._reqTimeout           = reqTimeout
+        self._uid                  = None
+        self._telemetryToken       = None
+        self._authenticated        = False
+        self._isCentral            = False
+        self._groupID              = None
+        self._closedCode           = None
+        self._requests             = { }
+        self._requestsLock         = allocate_lock()
+        self._xasTCPCli.OnClosed   = self._onTCPConnClosed
         self._waitInitiationReq()
 
     def Close(self) :
@@ -90,7 +90,8 @@ class IoTSocketSession :
         if not self._isCentral :
             self._groupID = self._router.GetACLAccess(self._uid)[0]
             if self._router.GetGroupOption(self._groupID, 'Telemetry') :
-                self._telemetryToken = self._router.GetNewTelemetryToken(self._uid)
+                expMin = self._router.GetGroupOption(self._groupID, 'TelemetryTokenExpMin')
+                self._telemetryToken = self._router.GetNewTelemetryToken(self._uid, expMin)
                 tr = IoTSocketStruct.MakeTelemetryTokenTR(self._telemetryToken)
                 self.Send(tr)
         self._waitDataTransmission()

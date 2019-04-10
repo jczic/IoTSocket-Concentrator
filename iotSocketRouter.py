@@ -49,6 +49,11 @@ class IoTSocketRouter :
                     if exp and nowSec >= exp :
                         del self._centralHTTPRequests[trackingNbr]
                         httpReq.SendResponseErrTimeout()
+            if self._telemetryTokens :
+                for token in list(self._telemetryTokens) :
+                    uid, exp = self._telemetryTokens[token]
+                    if exp and nowSec >= exp :
+                        del self._telemetryTokens[token]
         for uid in self._objectsSessions :
             self._objectsSessions[uid].CheckRequestsTimeout(nowSec)
         self._startTimerCheck()
@@ -163,9 +168,6 @@ class IoTSocketRouter :
             if removed and keepSessionData :
                 exp = time() + self._keepSessionSec
                 self._keepSessionsData[session.UID] = ([ ], exp)
-            if session.TelemetryToken in self._telemetryTokens :
-                if session.UID == self._telemetryTokens[session.TelemetryToken] :
-                    del self._telemetryTokens[session.TelemetryToken]
 
     def CentralSessionExists(self) :
         return ( self._centralSession is not None or \
@@ -186,12 +188,16 @@ class IoTSocketRouter :
                 if httpReq == self._centralHTTPRequests[httpReq.TrackingNbr][0] :
                     del self._centralHTTPRequests[httpReq.TrackingNbr]
 
-    def GetNewTelemetryToken(self, uid) :
+    def GetNewTelemetryToken(self, uid, expirationMin) :
         with self._lock :
             while True :
                 token = token_bytes(8)
                 if not token in self._telemetryTokens :
-                    self._telemetryTokens[token] = uid
+                    if isinstance(expirationMin, int) and expirationMin > 0 :
+                        exp = time() + (expirationMin * 60)
+                    else :
+                        exp = None
+                    self._telemetryTokens[token] = (uid, exp)
                     break
         return token
 
@@ -294,7 +300,7 @@ class IoTSocketRouter :
 
     def RouteTelemetry(self, token, dataFormat, formatOpt, data) :
         if token and data :
-            uid = self._telemetryTokens.get(token, None)
+            uid, exp = self._telemetryTokens.get(token, (None, None))
             if uid :
                 if self.CentralSessionExists() :
                     print('ROUTE : TELEMETRY OF OBJECT[%s] -> CENTRAL (USING SESSION)' % uid)
