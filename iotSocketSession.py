@@ -13,7 +13,7 @@ from   time            import time
 class IoTSocketSession :
 
     IOTSOCKET_VER   = 0x01
-    RECV_TIMEOUT    = 5
+    RECV_TIMEOUT    = 10
 
     def __init__(self, xAsyncTCPClient, router, sslKeyFilename, sslCrtFilename, reqTimeout) :
         self._xasTCPCli            = xAsyncTCPClient
