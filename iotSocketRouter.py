@@ -10,6 +10,7 @@ from   _thread         import allocate_lock
 from   binascii        import hexlify, unhexlify
 from   threading       import Timer
 from   time            import time
+from   datetime        import datetime
 import hmac
 import hashlib
 import json
@@ -49,6 +50,7 @@ class IoTSocketRouter :
                     if exp and nowSec >= exp :
                         del self._centralHTTPRequests[trackingNbr]
                         httpReq.SendResponseErrTimeout()
+                        self.Log('HTTPS REQUEST #%s TIMEOUT' % trackingNbr)
             if self._telemetryTokens :
                 for token in list(self._telemetryTokens) :
                     uid, exp = self._telemetryTokens[token]
@@ -57,6 +59,10 @@ class IoTSocketRouter :
         for uid in self._objectsSessions :
             self._objectsSessions[uid].CheckRequestsTimeout(nowSec)
         self._startTimerCheck()
+
+    def Log(self, line) :
+        dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        print('[%s] %s' % (dt, line))
 
     def AddGroup(self, groupName, options={ }) :
         if groupName and type(options) is dict :
@@ -204,10 +210,8 @@ class IoTSocketRouter :
     def RouteRequest(self, fromUID, toUID, trackingNbr, dataFormat, formatOpt, data) :
         if toUID or self.CentralSessionExists() :
             if toUID :
-                print("ROUTE : REQUEST #%s OF CENTRAL -> OBJECT[%s] (USING SESSION)" % (trackingNbr, toUID))
                 session = self._objectsSessions.get(toUID, None)
             else :
-                print("ROUTE : REQUEST #%s OF OBJECT[%s] -> CENTRAL (USING SESSION)" % (trackingNbr, fromUID))
                 session = self._centralSession
             data = IoTSocketStruct.MakeRequestTRHdr( fromUID,
                                                      trackingNbr,
@@ -222,9 +226,9 @@ class IoTSocketRouter :
             sessionData, exp = self._keepSessionsData.get(toUID, (None, None))
             if sessionData is not None :
                 sessionData.append(data)
+                self.Log('ROUTER : REQUEST #%s KEPT' % trackingNbr)
                 return True
         else :
-            print("ROUTE : REQUEST #%s OF OBJECT[%s] -> CENTRAL (USING WEBHOOK)" % (trackingNbr, fromUID))
             if self._onGetWebHookRequest :
                 plFormat, plObject = IoTSocketStruct.DecodeJSONPayload(data, dataFormat)
                 if plFormat is not None and plObject is not None :
@@ -235,6 +239,8 @@ class IoTSocketRouter :
                         webHook.OnClosed     = self._onWebHookClosed
                         webHook.Post(self._centralAuthKeyHex, fromUID, plObject, plFormat)
                         return True
+                    self.Log('ROUTER : ERROR TO OPEN WEBHOOK OF REQUEST')
+        self.Log('ROUTER : NO DESTINATION FOR REQUEST #%s' % trackingNbr)
         return False
 
     def _onWebHookResponseOk(self, centralHTTPWebHook, o) :
@@ -273,10 +279,8 @@ class IoTSocketRouter :
     def RouteResponse(self, fromUID, toUID, trackingNbr, code, dataFormat, formatOpt, data) :
         if toUID or self.CentralSessionExists() :
             if toUID :
-                print("ROUTE : RESPONSE #%s OF CENTRAL -> OBJECT[%s] (USING SESSION)" % (trackingNbr, toUID))
                 session = self._objectsSessions.get(toUID, None)
             else :
-                print("ROUTE : RESPONSE #%s OF OBJECT[%s] -> CENTRAL (USING SESSION)" % (trackingNbr, fromUID))
                 session = self._centralSession
             if session :
                 session.EndTrackingRequest(trackingNbr)
@@ -289,13 +293,13 @@ class IoTSocketRouter :
                      + data
                 return session.Send(data)
         else :
-            print("ROUTE : RESPONSE #%s OF OBJECT[%s] -> CENTRAL (USING HTTP RESPONSE)" % (trackingNbr, fromUID))
             httpReq, exp = self._centralHTTPRequests.get(trackingNbr, (None, None))
             if httpReq :
                 plFormat, plObject = IoTSocketStruct.DecodeJSONPayload(data, dataFormat)
                 if plFormat is not None and plObject is not None :
                     self.RemoveCentralHTTPRequest(httpReq)
                     return httpReq.SendResponse(code, plObject, plFormat)
+        self.Log('ROUTER : NO DESTINATION FOR RESPONSE #%s' % trackingNbr)
         return False
 
     def RouteTelemetry(self, token, dataFormat, formatOpt, data) :
@@ -303,7 +307,6 @@ class IoTSocketRouter :
             uid, exp = self._telemetryTokens.get(token, (None, None))
             if uid :
                 if self.CentralSessionExists() :
-                    print('ROUTE : TELEMETRY OF OBJECT[%s] -> CENTRAL (USING SESSION)' % uid)
                     session = self._centralSession
                     if session :
                         data = IoTSocketStruct.MakeIdentTelemetryTRHdr( uid,
@@ -313,13 +316,14 @@ class IoTSocketRouter :
                              + data
                         return session.Send(data)
                 elif self._onGetWebHookTelemetry :
-                    print('ROUTE : TELEMETRY OF OBJECT[%s] -> CENTRAL (USING WEBHOOK)' % uid)
                     plFormat, plObject = IoTSocketStruct.DecodeJSONPayload(data, dataFormat)
                     if plFormat is not None and plObject is not None :
                         webHook = self._onGetWebHookTelemetry(self)
                         if webHook :
                             webHook.Post(self._centralAuthKeyHex, uid, plObject, plFormat)
                             return True
+                        self.Log('ROUTER : ERROR TO OPEN WEBHOOK OF TELEMETRY')
+                self.Log('ROUTER : NO DESTINATION FOR TELEMETRY')
         return False
 
     @property

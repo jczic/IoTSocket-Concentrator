@@ -103,14 +103,18 @@ class CentralHTTPRequest :
                         if self._contentLength <= self._maxContentLength :
                             self._recv(None, self._onContentRecv, (b'', self._contentLength))
                         else :
+                            self._logRefused('REQUEST ENTITY TOO LARGE')
                             self._sendHTTPResponse(413, '413 : Request Entity Too Large')
                     else :
                         self._resLocations[self._resPath][1](None)
                 else :
+                    self._logRefused('METHOD NOT ALLOWED')
                     self._sendHTTPResponse(405, '405 : Method Not Allowed')
             else :
+                self._logRefused('NOT FOUND')
                 self._sendHTTPResponse(404, '404 : Not Found')
         else :
+            self._logRefused('UNAUTHORIZED')
             self._sendHTTPResponse(401, '401 : Unauthorized')
 
     def _checkAuthentication(self) :
@@ -134,7 +138,7 @@ class CentralHTTPRequest :
                 self._sendLine('Content-Length: %s' % len(content))
             self._sendLine('Connection: close')
             ok = self._sendLine()
-            if content :
+            if ok and content :
                 ok = self._send(content)
             self.Close()
             return ok
@@ -168,6 +172,7 @@ class CentralHTTPRequest :
         try :
             o = self._getJSONContent(content)
         except Exception as ex :
+            self._logRefused('BAD REQUEST, %s' % ex)
             self._sendHTTPResponse(400, '400 : Bad Request (%s)' % ex)
             return
         try :
@@ -187,16 +192,19 @@ class CentralHTTPRequest :
                 for ac in acl :
                     self._router.AddACLAccess(*ac)
                 self._router.SaveACL()
+                self._log('%s ACL SETUP RECEIVED' % len(acl))
                 self._sendHTTPResponse(200)
                 return
         except :
             pass
+        self._logRefused('BAD REQUEST, INCORRECT JSON DATA')
         self._sendHTTPResponse(400, '400 : Bad Request (incorrect json data)')
 
     def _processPOSTRequest(self, content) :
         try :
             o = self._getJSONContent(content)
         except Exception as ex :
+            self._logRefused('BAD REQUEST, %s' % ex)
             self._sendHTTPResponse(400, '400 : Bad Request (%s)' % ex)
             return
         try :
@@ -208,6 +216,8 @@ class CentralHTTPRequest :
                     timeout = self._maxSecWaitResponse
                 exp               = time() + timeout
                 self._trackingNbr = self._router.AddCentralHTTPRequest(self, exp)
+                strUID            = ('<%s>' % IoTSocketStruct.UIDFromBin128(uid))
+                self._log('REQUEST (#%s) FOR %s RECEIVED' % (self._trackingNbr, strUID))
                 if not self._router.RouteRequest( fromUID     = None,
                                                   toUID       = uid,
                                                   trackingNbr = self._trackingNbr,
@@ -219,7 +229,15 @@ class CentralHTTPRequest :
                 return
         except :
             pass
+        self._logRefused('BAD REQUEST, INCORRECT JSON DATA')
         self._sendHTTPResponse(400, '400 : Bad Request (incorrect json data)')
+
+    def _log(self, line) :
+        self._router.Log( 'HTTPS REQUEST FROM %s : %s' %
+                          (self._xasTCPCli.CliAddr[0], line) )
+
+    def _logRefused(self, reason) :
+        self._log('REFUSED (%s)' % reason)
 
     @property
     def TrackingNbr(self) :
