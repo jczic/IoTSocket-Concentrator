@@ -47,14 +47,14 @@ class IoTSocketSession :
         reason = {
             XClosedReason.ClosedByHost : 'BY HOST',
             XClosedReason.ClosedByPeer : 'BY PEER',
-            XClosedReason.Timeout      : 'TIMEOUT'
-        }.get(closedReason, 'ERROR')
+            XClosedReason.Timeout      : 'AFTER TIMEOUT'
+        }.get(closedReason, '(ERROR)')
         if self._authenticated :
             keepSessionData = self._closedCode in [ None,
                                                     IoTSocketStruct.CLOSE_CODE_SLEEP_MODE,
                                                     IoTSocketStruct.CLOSE_CODE_FLUSH_RESS ]
             self._router.RemoveSession(self, keepSessionData)
-            self._router.Log( 'SESSION %s CLOSED (%s)' %
+            self._router.Log( 'SESSION %s CLOSED %s' %
                               (self._getSessionName(), reason) )
         else :
             self._router.Log( 'CONNECTION %s REFUSED (%s)' %
@@ -129,11 +129,11 @@ class IoTSocketSession :
         if tot == IoTSocketStruct.TOT_ACL and self._isCentral :
             self._recv(4, self._onACLItemsCountRecv)
         elif tot == IoTSocketStruct.TOT_PING :
-            self._router.Log('SESSION %s : PING RECEIVED' % self._getSessionName())
+            self._router.Log('SESSION %s > PING RECEIVED' % self._getSessionName())
             self.Send(IoTSocketStruct.MakePongTR())
             self._waitDataTransmission()
         elif tot == IoTSocketStruct.TOT_PONG :
-            self._router.Log('SESSION %s : PONG RECEIVED' % self._getSessionName())
+            self._router.Log('SESSION %s > PONG RECEIVED' % self._getSessionName())
             self._waitDataTransmission()
         elif tot == IoTSocketStruct.TOT_REQUEST :
             self._recv(5, self._onRequestRecv, (uid, ))
@@ -147,7 +147,7 @@ class IoTSocketSession :
 
     def _onACLItemsCountRecv(self, xAsyncTCPClient, data, arg) :
         count = unpack('>I', data)[0]
-        self._router.Log( 'SESSION %s : %s ACL SETUP RECEIVED' %
+        self._router.Log( 'SESSION %s > %s ACL SETUP RECEIVED' %
                           (self._getSessionName(), count) )
         self._router.ClearACL()
         if count > 0 :
@@ -177,13 +177,13 @@ class IoTSocketSession :
                 return
             data = b''
         if uid :
-            strUID = ('<%s>' % IoTSocketStruct.UIDFromBin128(uid))
+            strUID = ('{%s}' % IoTSocketStruct.UIDFromBin128(uid))
         else :
             strUID = 'CENTRAL'
         errCode = None
         with self._requestsLock :
-            self._router.Log( 'SESSION %s : REQUEST (#%s) FOR %s RECEIVED' %
-                              (self._getSessionName(), trackingNbr, strUID) )
+            self._router.Log( 'SESSION %s > REQUEST TO %s RECEIVED (#%s)' %
+                              (self._getSessionName(), strUID, trackingNbr) )
             if not trackingNbr in self._requests :
                 if self._router.RouteRequest( fromUID     = None if self._isCentral else self._uid,
                                               toUID       = uid,
@@ -196,7 +196,7 @@ class IoTSocketSession :
                 else :
                     errCode = IoTSocketStruct.RESP_CODE_ERR_NO_DEST
             else :
-                self._router.Log( 'SESSION %s : TRACKING NUMBER #%s ALREADY EXISTS' %
+                self._router.Log( 'SESSION %s > TRACKING NUMBER #%s ALREADY EXISTS' %
                                   (self._getSessionName(), trackingNbr) )
                 errCode = IoTSocketStruct.RESP_CODE_ERR_SAME_TRK_NBR
         if errCode :
@@ -216,11 +216,11 @@ class IoTSocketSession :
                 return
             data = b''
         if uid :
-            strUID = ('<%s>' % IoTSocketStruct.UIDFromBin128(uid))
+            strUID = ('{%s}' % IoTSocketStruct.UIDFromBin128(uid))
         else :
             strUID = 'CENTRAL'
-        self._router.Log( 'SESSION %s : RESPONSE (#%s) FOR %s RECEIVED' %
-                          (self._getSessionName(), trackingNbr, strUID) )
+        self._router.Log( 'SESSION %s > RESPONSE TO %s RECEIVED (#%s)' %
+                          (self._getSessionName(), strUID, trackingNbr) )
         self._router.RouteResponse( fromUID     = None if self._isCentral else self._uid,
                                     toUID       = uid,
                                     trackingNbr = trackingNbr,
@@ -231,7 +231,7 @@ class IoTSocketSession :
         self._waitDataTransmission()
 
     def _onCloseConnCodeRecv(self, xAsyncTCPClient, data, arg) :
-        self._router.Log('SESSION %s : CLOSE CONNECTION CODE RECEIVED' % self._getSessionName())
+        self._router.Log('SESSION %s > CLOSE CONNECTION CODE RECEIVED' % self._getSessionName())
         self._closedCode = data[0]
         self.Close()
 
@@ -239,7 +239,7 @@ class IoTSocketSession :
         if self._isCentral :
             return 'CENTRAL'
         else :
-            return ('<%s>' % self._strUID)
+            return ('{%s}' % self._strUID)
 
     def EndTrackingRequest(self, trackingNbr) :
         with self._requestsLock :
@@ -256,7 +256,7 @@ class IoTSocketSession :
                         self.Send( IoTSocketStruct.MakeResponseErrTR( uid,
                                                                       trackingNbr,
                                                                       IoTSocketStruct.RESP_CODE_ERR_TIMEOUT ) )
-                        self._router.Log( 'SESSION %s : REQUEST #%s TIMEOUT' %
+                        self._router.Log( 'SESSION %s > REQUEST TIMEOUT (#%s)' %
                                           (self._getSessionName(), trackingNbr) )
 
     @property

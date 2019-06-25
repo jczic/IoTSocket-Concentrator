@@ -216,8 +216,8 @@ class CentralHTTPRequest :
                     timeout = self._maxSecWaitResponse
                 exp               = time() + timeout
                 self._trackingNbr = self._router.AddCentralHTTPRequest(self, exp)
-                strUID            = ('<%s>' % IoTSocketStruct.UIDFromBin128(uid))
-                self._log('REQUEST (#%s) FOR %s RECEIVED' % (self._trackingNbr, strUID))
+                strUID            = ('{%s}' % IoTSocketStruct.UIDFromBin128(uid))
+                self._log('REQUEST TO %s RECEIVED (#%s)' % (strUID, self._trackingNbr))
                 if not self._router.RouteRequest( fromUID     = None,
                                                   toUID       = uid,
                                                   trackingNbr = self._trackingNbr,
@@ -233,7 +233,7 @@ class CentralHTTPRequest :
         self._sendHTTPResponse(400, '400 : Bad Request (incorrect json data)')
 
     def _log(self, line) :
-        self._router.Log( 'HTTPS REQUEST FROM %s : %s' %
+        self._router.Log( 'HTTPS CLIENT %s > %s' %
                           (self._xasTCPCli.CliAddr[0], line) )
 
     def _logRefused(self, reason) :

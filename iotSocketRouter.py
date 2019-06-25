@@ -50,12 +50,14 @@ class IoTSocketRouter :
                     if exp and nowSec >= exp :
                         del self._centralHTTPRequests[trackingNbr]
                         httpReq.SendResponseErrTimeout()
-                        self.Log('HTTPS REQUEST #%s TIMEOUT' % trackingNbr)
+                        self.Log('HTTPS REQUEST TIMEOUT (#%s)' % trackingNbr)
             if self._telemetryTokens :
                 for token in list(self._telemetryTokens) :
                     uid, exp = self._telemetryTokens[token]
                     if exp and nowSec >= exp :
                         del self._telemetryTokens[token]
+                        self.Log( 'TELEMETRY TOKEN EXPIRED (%s)' %
+                                  self.TelemetryTokenToStr(token) )
         for uid in self._objectsSessions :
             self._objectsSessions[uid].CheckRequestsTimeout(nowSec)
         self._startTimerCheck()
@@ -205,7 +207,16 @@ class IoTSocketRouter :
                         exp = None
                     self._telemetryTokens[token] = (uid, exp)
                     break
+        self.Log( 'NEW TELEMETRY TOKEN FOR {%s} EXPIRING IN %s MIN (%s)' %
+                  ( IoTSocketStruct.UIDFromBin128(uid),
+                    expirationMin,
+                    self.TelemetryTokenToStr(token) ) )
         return token
+
+    def TelemetryTokenToStr(self, token) :
+        if isinstance(token, bytes) and len(token) == 8 :
+            return hexlify(token).decode().upper()
+        return 'TOKEN-ERROR'
 
     def RouteRequest(self, fromUID, toUID, trackingNbr, dataFormat, formatOpt, data) :
         if toUID or self.CentralSessionExists() :
@@ -226,7 +237,7 @@ class IoTSocketRouter :
             sessionData, exp = self._keepSessionsData.get(toUID, (None, None))
             if sessionData is not None :
                 sessionData.append(data)
-                self.Log('ROUTER : REQUEST #%s KEPT' % trackingNbr)
+                self.Log('ROUTER > REQUEST KEPT (#%s)' % trackingNbr)
                 return True
         else :
             if self._onGetWebHookRequest :
@@ -239,8 +250,8 @@ class IoTSocketRouter :
                         webHook.OnClosed     = self._onWebHookClosed
                         webHook.Post(self._centralAuthKeyHex, fromUID, plObject, plFormat)
                         return True
-                    self.Log('ROUTER : ERROR TO OPEN WEBHOOK OF REQUEST')
-        self.Log('ROUTER : NO DESTINATION FOR REQUEST #%s' % trackingNbr)
+                    self.Log('ROUTER > ERROR TO OPEN WEBHOOK OF REQUEST')
+        self.Log('ROUTER > NO DESTINATION FOR REQUEST (#%s)' % trackingNbr)
         return False
 
     def _onWebHookResponseOk(self, centralHTTPWebHook, o) :
@@ -299,13 +310,16 @@ class IoTSocketRouter :
                 if plFormat is not None and plObject is not None :
                     self.RemoveCentralHTTPRequest(httpReq)
                     return httpReq.SendResponse(code, plObject, plFormat)
-        self.Log('ROUTER : NO DESTINATION FOR RESPONSE #%s' % trackingNbr)
+        self.Log('ROUTER > NO DESTINATION FOR RESPONSE (#%s)' % trackingNbr)
         return False
 
     def RouteTelemetry(self, token, dataFormat, formatOpt, data) :
         if token and data :
             uid, exp = self._telemetryTokens.get(token, (None, None))
             if uid :
+                self.Log( 'ROUTER > TELEMETRY RECEIVED FROM {%s} WITH TOKEN %s' %
+                          ( IoTSocketStruct.UIDFromBin128(uid),
+                            self.TelemetryTokenToStr(token) ) )
                 if self.CentralSessionExists() :
                     session = self._centralSession
                     if session :
@@ -314,7 +328,8 @@ class IoTSocketRouter :
                                                                         formatOpt,
                                                                         len(data) ) \
                              + data
-                        return session.Send(data)
+                        if session.Send(data) :
+                            return True
                 elif self._onGetWebHookTelemetry :
                     plFormat, plObject = IoTSocketStruct.DecodeJSONPayload(data, dataFormat)
                     if plFormat is not None and plObject is not None :
@@ -322,8 +337,8 @@ class IoTSocketRouter :
                         if webHook :
                             webHook.Post(self._centralAuthKeyHex, uid, plObject, plFormat)
                             return True
-                        self.Log('ROUTER : ERROR TO OPEN WEBHOOK OF TELEMETRY')
-                self.Log('ROUTER : NO DESTINATION FOR TELEMETRY')
+                        self.Log('ROUTER > ERROR TO OPEN WEBHOOK OF TELEMETRY')
+                self.Log('ROUTER > NO DESTINATION FOR TELEMETRY')
         return False
 
     @property
