@@ -54,6 +54,10 @@
         {
             "Telemetry"             : true,
             "TelemetryTokenExpMin"  : 60
+        },
+        "Stations" :
+        {
+            "Telemetry"             : false
         }
     }
 

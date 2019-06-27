@@ -102,15 +102,16 @@ class IoTSocketSession :
         self._authenticated = True
         self._isCentral     = (self._uid == IoTSocketStruct.CENTRAL_EMPTY_UID)
         if not self._isCentral :
+            self._strUID = IoTSocketStruct.UIDFromBin128(self._uid)
+        self._router.Log( 'SESSION %s STARTED FROM %s' %
+                          (self._getSessionName(), self._xasTCPCli.CliAddr[0]) )
+        if not self._isCentral :
             self._groupID = self._router.GetACLAccess(self._uid)[0]
-            self._strUID  = IoTSocketStruct.UIDFromBin128(self._uid)
             if self._router.GetGroupOption(self._groupID, 'Telemetry') :
                 expMin = self._router.GetGroupOption(self._groupID, 'TelemetryTokenExpMin')
                 self._telemetryToken = self._router.GetNewTelemetryToken(self._uid, expMin)
                 tr = IoTSocketStruct.MakeTelemetryTokenTR(self._telemetryToken)
                 self.Send(tr)
-        self._router.Log( 'SESSION %s STARTED FROM %s' %
-                          (self._getSessionName(), self._xasTCPCli.CliAddr[0]) )
         self._waitDataTransmission()
 
     def _waitDataTransmission(self) :

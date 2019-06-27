@@ -32,7 +32,9 @@ class IoTSocketRouter :
         self._onGetWebHookRequest   = None
         self._onGetWebHookTelemetry = None
         self._lock                  = allocate_lock()
+        self._processing            = True
         self._startTimerCheck()
+        self.Log('ROUTER > STARTED')
 
     def _startTimerCheck(self) :
         Timer(1, self._timerCheckSeconds).start()
@@ -60,10 +62,14 @@ class IoTSocketRouter :
                                   self.TelemetryTokenToStr(token) )
         for uid in self._objectsSessions :
             self._objectsSessions[uid].CheckRequestsTimeout(nowSec)
-        self._startTimerCheck()
+        if self._processing :
+            self._startTimerCheck()
+
+    def Stop(self) :
+        self._processing = False
 
     def Log(self, line) :
-        dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        dt = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         print('[%s] %s' % (dt, line))
 
     def AddGroup(self, groupName, options={ }) :

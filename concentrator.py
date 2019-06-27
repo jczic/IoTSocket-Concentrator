@@ -18,7 +18,10 @@ from   urlUtils           import UrlUtils
 
 from   config             import Config
 from   binascii           import unhexlify
+from   os                 import path
 from   time               import sleep
+
+ACL_FILENAME = 'acl.json'
 
 def OnTCPSrvClientAccepted(xAsyncTCPServer, xAsyncTCPClient) :
     IoTSocketSession( xAsyncTCPClient = xAsyncTCPClient,
@@ -217,7 +220,7 @@ def Start() :
 
     xasPool = XAsyncSocketsPool()
 
-    router  = IoTSocketRouter( aclFilename    = 'acl.json',
+    router  = IoTSocketRouter( aclFilename    = ACL_FILENAME,
                                centralAuthKey = centralAuthKey,
                                keepSessionSec = keepSessionSec )
 
@@ -285,8 +288,25 @@ def Start() :
 
     return True
 
+print()
 if Start() :
     print()
-    print("IOTSOCKET CONCENTRATOR STARTED!")
-    while True :
-        sleep(1)
+    print("IOTSOCKET CONCENTRATOR STARTED")
+    print()
+    try :
+        aclFileTime = path.getmtime(ACL_FILENAME)
+        while True :
+            sleep(1)
+            t = path.getmtime(ACL_FILENAME)
+            if t != aclFileTime :
+                aclFileTime = t
+                if router.LoadACL() :
+                    print("SUCCESS: NEW ACL FILE LOADED")
+                else :
+                    print("WARNING: CANNOT LOAD NEW ACL FILE...")
+    except KeyboardInterrupt :
+        print()
+        print("IOTSOCKET CONCENTRATOR ENDING...")
+        print()
+        router.Stop()
+        xasPool.StopWaitEvents()

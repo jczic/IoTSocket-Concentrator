@@ -3,5 +3,10 @@
 	{
 		"GroupName"		: "Devices",
 		"AuthKey"		: "43434343434343434444444444444444"
+	},
+	"SV3-000" :
+	{
+		"GroupName"		: "Stations",
+		"AuthKey"		: "00112233445566778899AABBCCDDEEFF"
 	}
 }
