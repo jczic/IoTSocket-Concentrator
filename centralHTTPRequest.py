@@ -32,10 +32,12 @@ class CentralHTTPRequest :
             "/acl"     : ( 'POST', self._processPOSTACL     ),
             "/request" : ( 'POST', self._processPOSTRequest )
         }
-        if self._xasTCPCli.StartSSL(sslKeyFilename, sslCrtFilename, True) :
-            self._recvLine(self._onFirstLineRecv)
-        else :
+        try :
+            self._xasTCPCli.StartSSL(sslKeyFilename, sslCrtFilename, True)
+        except :
             self.Close()
+            return
+        self._recvLine(self._onFirstLineRecv)
 
     def Close(self) :
         self._xasTCPCli.Close()

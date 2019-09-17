@@ -70,7 +70,7 @@ class IoTSocketRouter :
 
     def Log(self, line) :
         dt = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-        print('[%s] %s' % (dt, line))
+        print('[%s] %s' % (dt, str(line)))
 
     def AddGroup(self, groupName, options={ }) :
         if groupName and type(options) is dict :

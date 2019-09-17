@@ -33,8 +33,11 @@ class CentralHTTPWebHook :
         if not self._xasTCPCli :
             raise Exception("Error to connect HTTP WebHook %s" % url)
         self._xasTCPCli.OnClosed = self._onTCPConnClosed
-        if url.IsHttps() and not self._xasTCPCli.StartSSL() :
-            raise Exception("SSL error on HTTP WebHook %s" % url) 
+        if url.IsHttps() :
+            try :
+                self._xasTCPCli.StartSSL()
+            except :
+                raise Exception("SSL error on HTTP WebHook %s" % url) 
 
     def Close(self) :
         self._xasTCPCli.Close()

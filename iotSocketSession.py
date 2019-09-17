@@ -79,9 +79,11 @@ class IoTSocketSession :
 
     def _onInitiationRespSent(self, xAsyncTCPClient, arg) :
         if arg :
-            if not self._xasTCPCli.StartSSL( self._sslKeyFilename,
-                                             self._sslCrtFilename,
-                                             True ) :
+            try :
+                self._xasTCPCli.StartSSL( self._sslKeyFilename,
+                                          self._sslCrtFilename,
+                                          True )
+            except :
                 self.Close()
                 return
         self._token128 = token_bytes(16)
