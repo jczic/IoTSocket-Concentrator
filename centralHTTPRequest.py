@@ -20,7 +20,6 @@ class CentralHTTPRequest :
         self._maxContentLength   = maxContentLength
         self._maxSecWaitResponse = maxSecWaitResponse
         self._method             = None
-        self._resPath            = None
         self._httpVer            = None
         self._resPath            = '/'
         self._queryString        = ''
