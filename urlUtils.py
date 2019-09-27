@@ -1,8 +1,8 @@
+
 """
 The MIT License (MIT)
-Copyright © 2018 Jean-Christophe Bos & HC² (www.hc2.fr)
+Copyright © 2019 Jean-Christophe Bos & HC² (www.hc2.fr)
 """
-
 
 class UrlUtils :
 
@@ -18,7 +18,8 @@ class UrlUtils :
                (c in '.-_') or (c in safe) :
                 r += c
             else :
-                r += '%%%02X' % ord(c)
+                for b in c.encode('UTF-8') :
+                    r += '%%%02X' % b
         return r
 
     # ----------------------------------------------------------------------------
@@ -32,13 +33,16 @@ class UrlUtils :
     @staticmethod
     def Unquote(s) :
         r = str(s).split('%')
-        for i in range(1, len(r)) :
-            s = r[i]
-            try :
-                r[i] = chr(int(s[:2], 16)) + s[2:]
-            except :
-                r[i] = '%' + s
-        return ''.join(r)
+        try :
+            b = r[0].encode()
+            for i in range(1, len(r)) :
+                try :
+                    b += bytes([int(r[i][:2], 16)]) + r[i][2:].encode()
+                except :
+                    b += b'%' + r[i].encode()
+            return b.decode('UTF-8')
+        except :
+            return str(s)
 
     # ----------------------------------------------------------------------------
 
