@@ -623,7 +623,6 @@ class XAsyncTCPClient(XAsyncSocket) :
             try :
                 n = self._socket.send(self._wrBufView)
             except :
-                self._close()
                 return
             self._wrBufView = self._wrBufView[n:]
             if self._wrBufView :
@@ -696,26 +695,7 @@ class XAsyncTCPClient(XAsyncSocket) :
 
     # ------------------------------------------------------------------------
 
-    def StartSSL( self,
-                  keyfile     = None,
-                  certfile    = None,
-                  server_side = False,
-                  cert_reqs   = ssl.CERT_NONE,
-                  ca_certs    = None ) :
-        if not hasattr(ssl, 'SSLContext') :
-            raise XAsyncTCPClientException('SSL is not properly supported')
-        try :
-            self._asyncSocketsPool.NotifyNextReadyForWriting(self, False)
-            self._asyncSocketsPool.NotifyNextReadyForReading(self, False)
-            self._socket = ssl.wrap_socket( self._socket,
-                                            keyfile     = keyfile,
-                                            certfile    = certfile,
-                                            server_side = server_side,
-                                            cert_reqs   = cert_reqs,
-                                            ca_certs    = ca_certs,
-                                            do_handshake_on_connect = False )
-        except Exception as ex :
-            raise XAsyncTCPClientException('StartSSL : %s' % ex)
+    def _doSSLHandshake(self) :
         count = 0
         while count < 10 :
             try :
@@ -728,9 +708,50 @@ class XAsyncTCPClient(XAsyncSocket) :
                 elif sslErr.args[0] == ssl.SSL_ERROR_WANT_WRITE :
                     select([], [self._socket], [], 1)
                 else :
-                    raise XAsyncTCPClientException('SSL handshake #1 : %s' % sslErr)
+                    raise XAsyncTCPClientException('SSL : Bad handshake : %s' % sslErr)
             except Exception as ex :
-                raise XAsyncTCPClientException('SSL handshake #2 : %s' % ex)
+                raise XAsyncTCPClientException('SSL : Handshake error : %s' % ex)
+
+    # ------------------------------------------------------------------------
+
+    def StartSSL( self,
+                  keyfile     = None,
+                  certfile    = None,
+                  server_side = False,
+                  cert_reqs   = ssl.CERT_NONE,
+                  ca_certs    = None ) :
+        if not hasattr(ssl, 'SSLContext') :
+            raise XAsyncTCPClientException('StartSSL : This SSL implementation is not supported.')
+        try :
+            self._asyncSocketsPool.NotifyNextReadyForWriting(self, False)
+            self._asyncSocketsPool.NotifyNextReadyForReading(self, False)
+            self._socket = ssl.wrap_socket( self._socket,
+                                            keyfile     = keyfile,
+                                            certfile    = certfile,
+                                            server_side = server_side,
+                                            cert_reqs   = cert_reqs,
+                                            ca_certs    = ca_certs,
+                                            do_handshake_on_connect = False )
+        except Exception as ex :
+            raise XAsyncTCPClientException('StartSSL : %s' % ex)
+        self._doSSLHandshake()
+
+    # ------------------------------------------------------------------------
+
+    def StartSSLContext(self, sslContext, serverSide=False) :
+        if not hasattr(ssl, 'SSLContext') :
+            raise XAsyncTCPClientException('StartSSLContext : This SSL implementation is not supported.')
+        if not isinstance(sslContext, ssl.SSLContext) :
+            raise XAsyncTCPClientException('StartSSLContext : "sslContext" is incorrect.')
+        try :
+            self._asyncSocketsPool.NotifyNextReadyForWriting(self, False)
+            self._asyncSocketsPool.NotifyNextReadyForReading(self, False)
+            self._socket = sslContext.wrap_socket( self._socket,
+                                                   server_side             = serverSide,
+                                                   do_handshake_on_connect = False )
+        except Exception as ex :
+            raise XAsyncTCPClientException('StartSSLContext : %s' % ex)
+        self._doSSLHandshake()
 
     # ------------------------------------------------------------------------
 
@@ -741,6 +762,10 @@ class XAsyncTCPClient(XAsyncSocket) :
     @property
     def CliAddr(self) :
         return self._cliAddr
+
+    @property
+    def IsSSL(self) :
+        return isinstance(self._socket, ssl.SSLSocket)
 
     @property
     def OnFailsToConnect(self) :
