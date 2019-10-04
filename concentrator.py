@@ -251,7 +251,7 @@ def Start() :
         xasTCPSrv   = XAsyncTCPServer.Create( asyncSocketsPool = xasPool,
                                               srvAddr          = tcpBindAddr,
                                               srvBacklog       = tcpBacklog,
-                                              recvBufSlots     = tcpSrvBufSlots )
+                                              bufSlots         = tcpSrvBufSlots )
         xasTCPSrv.OnClientAccepted = OnTCPSrvClientAccepted
         xasTCPSrv.OnClosed         = OnTCPSrvClosed
     except :
@@ -267,7 +267,7 @@ def Start() :
         xasHTTPSrv   = XAsyncTCPServer.Create( asyncSocketsPool = xasPool,
                                                srvAddr          = httpBindAddr,
                                                srvBacklog       = httpBacklog,
-                                               recvBufSlots     = httpSrvBufSlots )
+                                               bufSlots         = httpSrvBufSlots )
         xasHTTPSrv.OnClientAccepted = OnHTTPSrvClientAccepted
         xasHTTPSrv.OnClosed         = OnHTTPSrvClosed
     except :
@@ -278,9 +278,10 @@ def Start() :
         udpBindAddr = (udpSrvAddr, udpSrvPort)
         xasUDPSrv   = XAsyncUDPDatagram.Create( asyncSocketsPool = xasPool,
                                                 localAddr        = udpBindAddr,
-                                                recvbufLen       = udpDatagramMaxSize )
+                                                recvBufLen       = udpDatagramMaxSize )
         xasUDPSrv.OnDataRecv = OnUDPSrvDataRecv
-    except :
+    except Exception as ex :
+        print(ex)
         print("Error to bind UDP server on '%s:%s'." % udpBindAddr)
         return False
 
