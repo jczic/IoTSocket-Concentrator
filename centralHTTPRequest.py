@@ -50,8 +50,8 @@ class CentralHTTPRequest :
     def _recv(self, size, onDataRecv, onDataRecvArg=None) :
         self._xasTCPCli.AsyncRecvData(size, onDataRecv, onDataRecvArg, self.RECV_TIMEOUT)
 
-    def _recvLine(self, onDataRecv, onDataRecvArg=None) :
-        self._xasTCPCli.AsyncRecvLine(onDataRecv, onDataRecvArg, self.RECV_TIMEOUT)
+    def _recvLine(self, onLineRecv, onLineRecvArg=None) :
+        self._xasTCPCli.AsyncRecvLine('UTF-8', onLineRecv, onLineRecvArg, self.RECV_TIMEOUT)
 
     def _onFirstLineRecv(self, xAsyncTCPClient, line, arg) :
         try :
@@ -88,7 +88,7 @@ class CentralHTTPRequest :
             self.Close()
 
     def _onContentRecv(self, xAsyncTCPClient, data, arg) :
-        content   = arg[0] + data.tobytes()
+        content   = arg[0] + bytes(data)
         remaining = arg[1] - len(data)
         if remaining > 0 :
             self._recv(None, self._onContentRecv, (content, remaining))
