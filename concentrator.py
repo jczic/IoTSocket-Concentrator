@@ -21,13 +21,14 @@ from   binascii           import unhexlify
 from   os                 import path
 from   time               import sleep
 
+import ssl
+
 ACL_FILENAME = 'acl.json'
 
 def OnTCPSrvClientAccepted(xAsyncTCPServer, xAsyncTCPClient) :
     IoTSocketSession( xAsyncTCPClient = xAsyncTCPClient,
                       router          = router,
-                      sslKeyFilename  = tcpSSLKeyFilename,
-                      sslCrtFilename  = tcpSSLCrtFilename,
+                      sslContext      = tcpSSLContext,
                       reqTimeout      = tcpReqTimeoutSec )
 
 def OnTCPSrvClosed(xAsyncTCPServer, closedReason) :
@@ -36,8 +37,7 @@ def OnTCPSrvClosed(xAsyncTCPServer, closedReason) :
 def OnHTTPSrvClientAccepted(xAsyncTCPServer, xAsyncTCPClient) :
     CentralHTTPRequest( xAsyncTCPClient    = xAsyncTCPClient,
                         router             = router,
-                        sslKeyFilename     = httpSSLKeyFilename,
-                        sslCrtFilename     = httpSSLCrtFilename,
+                        sslContext         = httpSSLContext,
                         maxContentLength   = httpMaxContentLength,
                         maxSecWaitResponse = httpMaxSecWaitResponse )
 
@@ -71,11 +71,9 @@ def OnRouterGetWebHookTelemetry(iotSocketRouter) :
 def Start() :
 
     global cfg
-    global tcpSSLKeyFilename
-    global tcpSSLCrtFilename
+    global tcpSSLContext
     global tcpReqTimeoutSec
-    global httpSSLKeyFilename
-    global httpSSLCrtFilename
+    global httpSSLContext
     global httpMaxContentLength
     global httpMaxSecWaitResponse
     global tcpBindAddr
@@ -127,6 +125,14 @@ def Start() :
         print("Error when reading 'TCPServer.ReqTimeoutSec' in configuration.")
         return False
 
+    try :
+        tcpSSLContext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        tcpSSLContext.load_cert_chain( certfile = tcpSSLCrtFilename,
+                                       keyfile  = tcpSSLKeyFilename )
+    except :
+        print("SSL certificate initialization error for TCP server (check configuration).")
+        return False
+
     httpSrvAddr = cfg.get('HTTPServer.Addr')
     httpSrvPort = cfg.get('HTTPServer.Port')
     if not httpSrvAddr or not httpSrvPort :
@@ -159,6 +165,14 @@ def Start() :
     httpMaxSecWaitResponse = cfg.get('HTTPServer.MaxSecWaitResponse')
     if type(httpMaxSecWaitResponse) is not int or httpMaxSecWaitResponse <= 0 :
         print("Error when reading 'HTTPServer.MaxSecWaitResponse' in configuration.")
+        return False
+
+    try :
+        httpSSLContext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        httpSSLContext.load_cert_chain( certfile = httpSSLCrtFilename,
+                                        keyfile  = httpSSLKeyFilename )
+    except :
+        print("SSL certificate initialization error for HTTP server (check configuration).")
         return False
 
     udpSrvAddr = cfg.get('UDPServer.Addr')

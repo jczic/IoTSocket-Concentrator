@@ -41,9 +41,12 @@ class IoTSocketSession :
     def _onInitiationRespRecv(self, xAsyncTCPClient, data, arg) :
         ok, ruleType, ruleFlags = IoTSocketStruct.DecodeInitiationResp(data)
         if ok and ruleType == IoTSocketStruct.INIT_NO_RULE :
-            if self._xasTCPCli.StartSSL() :
+            try :
+                self._xasTCPCli.StartSSL()
                 self._recv(16, self._onChallengeRecv)
                 return
+            except :
+                pass
         self.Close()
 
     def _onChallengeRecv(self, xAsyncTCPClient, data, arg) :
@@ -194,7 +197,7 @@ def Start() :
     xasTCPCli  = XAsyncTCPClient.Create( asyncSocketsPool = xasPool,
                                          srvAddr          = tcpSrvAddr,
                                          connectTimeout   = 2,
-                                         recvbufLen       = IoTSocketSession.MAX_TR_LEN )
+                                         recvBufLen       = IoTSocketSession.MAX_TR_LEN )
     xasTCPCli.OnFailsToConnect = OnTCPCliFailsToConnect
     xasTCPCli.OnConnected      = OnTCPCliConnected
     xasTCPCli.OnClosed         = OnTCPCliClosed

@@ -14,7 +14,7 @@ class CentralHTTPRequest :
 
     RECV_TIMEOUT = 2
 
-    def __init__(self, xAsyncTCPClient, router, sslKeyFilename, sslCrtFilename, maxContentLength, maxSecWaitResponse) :
+    def __init__(self, xAsyncTCPClient, router, sslContext, maxContentLength, maxSecWaitResponse) :
         self._xasTCPCli          = xAsyncTCPClient
         self._router             = router
         self._maxContentLength   = maxContentLength
@@ -32,7 +32,7 @@ class CentralHTTPRequest :
             "/request" : ( 'POST', self._processPOSTRequest )
         }
         try :
-            self._xasTCPCli.StartSSL(sslKeyFilename, sslCrtFilename, True)
+            self._xasTCPCli.StartSSLContext(sslContext, True)
         except :
             self.Close()
             return

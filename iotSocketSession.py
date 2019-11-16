@@ -16,11 +16,10 @@ class IoTSocketSession :
     IOTSOCKET_VER   = 0x01
     RECV_TIMEOUT    = 10
 
-    def __init__(self, xAsyncTCPClient, router, sslKeyFilename, sslCrtFilename, reqTimeout) :
+    def __init__(self, xAsyncTCPClient, router, sslContext, reqTimeout) :
         self._xasTCPCli            = xAsyncTCPClient
         self._router               = router
-        self._sslKeyFilename       = sslKeyFilename
-        self._sslCrtFilename       = sslCrtFilename
+        self._sslContext           = sslContext
         self._reqTimeout           = reqTimeout
         self._uid                  = None
         self._telemetryToken       = None
@@ -66,9 +65,7 @@ class IoTSocketSession :
     def _onInitiationReqRecv(self, xAsyncTCPClient, data, arg) :
         tls, ver, opt, maxTrLen = IoTSocketStruct.DecodeInitiationReq(data)
         ok = ( ver == self.IOTSOCKET_VER and
-               ( not tls or
-                 ( self._sslKeyFilename is not None and \
-                   self._sslCrtFilename is not None ) ) )
+               ( not tls or self._sslContext is not None ) )
         data = IoTSocketStruct.MakeInitiationResp( ok       = ok,
                                                    ruleType = IoTSocketStruct.INIT_NO_RULE )
         if ok :
@@ -80,9 +77,7 @@ class IoTSocketSession :
     def _onInitiationRespSent(self, xAsyncTCPClient, arg) :
         if arg :
             try :
-                self._xasTCPCli.StartSSL( self._sslKeyFilename,
-                                          self._sslCrtFilename,
-                                          True )
+                self._xasTCPCli.StartSSLContext(self._sslContext, True)
             except :
                 self.Close()
                 return
